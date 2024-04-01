@@ -8,4 +8,4 @@ GRANT ALL PRIVILEGES ON *.* TO 'project_dba'@'localhost';
 FLUSH PRIVILEGES;
 
 -- Create Database
-CREATE DATABASE IF NOT EXISTS proj_database1;
+CREATE DATABASE IF NOT EXISTS proj_database;
