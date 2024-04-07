@@ -8,14 +8,11 @@ CREATE TABLE users (
 
 
 -- CREATE RESTAURANT TABLE
--- rest name unique?
--- status: open, closed, under renovation, ..?
--- description: not null?
 CREATE TABLE restaurant (
     restaurant_id INT PRIMARY KEY,
-    restaurant_name VARCHAR(20) not null,
-    description VARCHAR(100),
-    status VARCHAR(20) not null
+    restaurant_name VARCHAR(20) not null UNIQUE,
+    description VARCHAR(100) not null,
+    status ENUM('Coming Soon', 'Closed', 'Open', 'Permanently Closed', 'Under Renovation') not null
 );
 
 -- CREATE RESTAURANT CONTACTS TABLE
@@ -74,7 +71,7 @@ ALTER TABLE order_item add constraint fk_orderitem_menu FOREIGN KEY (menu_item_i
 CREATE TABLE opening_hour(
     restaurant_hour_id INT,
     hours_id INT,
-    day_of_week VARCHAR(10),
+    day_of_week ENUM('Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'),
     opening_time TIME,
     closing_time TIME,
     PRIMARY KEY (restaurant_hour_id,hours_id)
