@@ -28,10 +28,14 @@ ALTER TABLE restaurant_contacts add constraint fk_restaurant_contacts FOREIGN KE
 -- CREATE MENU ITEMS TABLE
 CREATE TABLE menu_item(
     item_id INT PRIMARY KEY,
+    restaurant_id INT,
     item_name VARCHAR(20),
     price INT,
     item_desc VARCHAR(50)
 );
+
+-- FOREIGN KEY BETWEEN MENU ITEMS AND RESTAURANT 
+ALTER TABLE menu_item add constraint fk_menu_item FOREIGN KEY (restaurant_id) REFERENCES restaurant(restaurant_id);
 
 -- CREATE ORDERS TABLE
 CREATE TABLE orders(
