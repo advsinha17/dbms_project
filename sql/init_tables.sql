@@ -28,9 +28,9 @@ ALTER TABLE restaurant_contacts add constraint fk_restaurant_contacts FOREIGN KE
 -- CREATE MENU ITEMS TABLE
 CREATE TABLE menu_item(
     item_id INT PRIMARY KEY,
-    restaurant_id INT,
-    item_name VARCHAR(20),
-    price INT,
+    restaurant_id INT not null,
+    item_name VARCHAR(20) not null,
+    price INT not null,
     item_desc VARCHAR(50)
 );
 
@@ -40,13 +40,13 @@ ALTER TABLE menu_item add constraint fk_menu_item FOREIGN KEY (restaurant_id) RE
 -- CREATE ORDERS TABLE
 CREATE TABLE orders(
     order_id INT PRIMARY KEY,
-    order_user INT,
-    order_restaurant_id INT,
-    total_amount INT,
-    order_status VARCHAR(10),
-    payment_method VARCHAR(15),
+    order_user INT not null,
+    order_restaurant_id INT not null,
+    total_amount INT not null,
+    order_status ENUM('Order Incomplete', 'Order Recieved', 'Order Ready', 'Order Collected') not null,
+    payment_method ENUM('Cash', 'UPI', 'Order Incomplete') not null,
     order_date_time DATETIME,
-    phone_number VARCHAR(10)
+    phone_number VARCHAR(10) not null
 );
 
 -- FOREIGN KEY BETWEEN ORDERS AND USERS
@@ -59,9 +59,9 @@ ALTER TABLE orders add constraint fk_order_restaurant FOREIGN KEY (order_restaur
 CREATE TABLE order_item(
     order_id INT,
     order_item_id INT,
-    quantity INT,
-    subtotal INT,
-    menu_item_id INT,
+    quantity INT not null,
+    subtotal INT not null,
+    menu_item_id INT not null,
     PRIMARY KEY (order_id,order_item_id)
 );
 
