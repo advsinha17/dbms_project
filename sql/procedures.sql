@@ -66,11 +66,26 @@ CREATE OR REPLACE PROCEDURE create_new_order(order_id IN INT, order_user IN INT,
 BEGIN
     IF (phone_number <> '' AND (phone_number REGEXP '^[0-9]{10}$')) THEN
         INSERT INTO orders (order_id, order_user, order_restaurant_id, total_amount, order_status, payment_method, order_date_time, phone_number)
-        VALUES (order_id, order_user, order_restaurant_id, 0, 'Order Incomplete', 'Order Incomplete', NULL, phone_number);
+        VALUES (order_id, order_user, order_restaurant_id, 0, 'Order Incomplete', 'Unknown', NULL, phone_number);
         SELECT 'Order created with order ID ' || order_id;
     ELSE
         SELECT 'Phone number must be numberic ONLY and 10 digits long';
     END IF;
+EXCEPTION
+    WHEN OTHERS THEN
+        SELECT 'Exception ' || SQLERRM AS EXCEPTION;
+END;
+/
+
+CREATE OR REPLACE PROCEDURE set_opening_hours(restaurant_id INT, hours_id INT, day_of_week VARCHAR(20), opening_time TIME, closing_time TIME) AS
+BEGIN
+    INSERT INTO opening_hours (restaurant_id, hours_id, day_of_week, opening_time, closing_time)
+    VALUES (restaurant_id, hours_id, day_of_week, opening_time, closing_time)
+    ON DUPLICATE KEY UPDATE
+        day_of_week = VALUES(day_of_week),
+        opening_time = VALUES(opening_time),
+        closing_time = VALUES(closing_time);
+    SELECT 'Opening hours set successfully.' AS SUCCESS;
 EXCEPTION
     WHEN OTHERS THEN
         SELECT 'Exception ' || SQLERRM AS EXCEPTION;
@@ -98,31 +113,17 @@ END;
 /
 
 CREATE OR REPLACE PROCEDURE place_order(order_id IN INT, payment_method IN VARCHAR2) AS
-total_amount INT;
 BEGIN
-
--- calculate total amount, set order status, payment method and order_date_time
-
-
-CREATE OR REPLACE FUNCTION calc_total (order_id IN INT) RETURN INT IS
-total_amount INT;
-BEGIN
-    -- check if valid order, find order, return total
-
-CREATE OR REPLACE FUNCTION calc_subtotal(menu_item_id IN INT, quantity IN INT) RETURN INT IS
-subtotal INT;
-item_price INT;
-BEGIN
-    SELECT price INTO item_price FROM menu_items WHERE item_id = menu_item_id;
-    subtotal := item_price * quantity;
-    RETURN subtotal;
+    UPDATE orders
+    SET order_status = 'Order Recieved',
+        payment_method = payment_method,
+        order_date_time = SYSDATE
+    WHERE order_id = order_id;
 EXCEPTION
     WHEN OTHERS THEN
-        RETURN 0;
+        SELECT 'Exception ' || SQLERRM AS EXCEPTION;
 END;
 /
-
-
 
 CREATE OR REPLACE FUNCTION get_total_spending(user_id IN INT) RETURN INT IS
 total_spending INT;
@@ -142,19 +143,70 @@ BEGIN
 END;
 /
 
+CREATE OR REPLACE PROCEDURE get_order_details(order_id IN INT) AS
+    CURSOR c_order_details IS
+    SELECT o.order_id, o.order_status, o.payment_method, o.order_date_time, o.total_amount, u.fname || ' ' || u.lname AS user_full_name, mi.item_name
+    FROM orders o
+    JOIN users u ON o.order_user = u.user_id
+    JOIN order_items oi ON o.order_id = oi.order_id
+    JOIN menu_item mi ON oi.menu_item_id = mi.item_id
+    WHERE o.order_id = order_id;
+    v_order_details c_order_details%ROWTYPE;
+BEGIN
+    OPEN c_order_details;
+    FETCH c_order_details INTO v_order_details;
+    CLOSE c_order_details;
+    SELECT 'Order id: ' || v_order_details.order_id AS SUCCESS;
+    SELECT 'Order status: ' || v_order_details.order_status AS SUCCESS;
+    SELECT 'User full names: ' || v_order_details.user_full_name AS SUCCESS;
+EXCEPTION
+    WHEN NO_DATA_FOUND THEN
+        SELECT 'Order not found.' AS EXCEPTION;
+    WHEN OTHERS THEN
+        SELECT 'Exception ' || SQLERRM AS EXCEPTION;
+END;
+/
+
+-- CREATE OR REPLACE PROCEDURE get_order_details(order_id IN INT) AS
+--     CURSOR c_order_details IS
+--     SELECT o.order_id, o.order_status, o.payment_method, o.order_date_time, o.total_amount, u.fname || ' ' || u.lname AS user_full_name, mi.item_name
+--     FROM orders o
+--     JOIN users u ON o.order_user = u.user_id
+--     JOIN order_items oi ON o.order_id = oi.order_id
+--     JOIN menu_item mi ON oi.menu_item_id = mi.item_id
+--     WHERE o.order_id = order_id;
+--     v_order_details c_order_details%ROWTYPE;
+-- BEGIN
+--     OPEN c_order_details;
+--     FETCH c_order_details INTO v_order_details;
+--     CLOSE c_order_details;
+--     DBMS_OUTPUT.PUT_LINE('Order ID: ' || v_order_details.order_id);
+--     DBMS_OUTPUT.PUT_LINE('Order Status: ' || v_order_details.order_status);
+--     DBMS_OUTPUT.PUT_LINE('Payment Method: ' || v_order_details.payment_method);
+--     DBMS_OUTPUT.PUT_LINE('Order Date Time: ' || v_order_details.order_date_time);
+--     DBMS_OUTPUT.PUT_LINE('Total Amount: ' || v_order_details.total_amount);
+--     DBMS_OUTPUT.PUT_LINE('User Full Name: ' || v_order_details.user_full_name);
+--     DBMS_OUTPUT.PUT_LINE('Item Name: ' || v_order_details.item_name);
+-- EXCEPTION
+--     WHEN NO_DATA_FOUND THEN
+--         DBMS_OUTPUT.PUT_LINE('No data found for order id: ' || order_id);
+--     WHEN OTHERS THEN
+--         DBMS_OUTPUT.PUT_LINE('An error occurred: ' || SQLERRM);
+-- END;
+-- /
 
 -- some procedures to be created:
 -- 1. set number for restaurant - done
--- 3. set opening hours (ADVIK IS DOING THIS)
+-- 3. set opening hours - done
 -- 4. add new menu item - done
 -- 5. create new order - done
+-- 9. total earnings for restaurant - done
+-- 10. total spending for user - done
+
 -- 6. get order details given order id
 -- 7. get all orders for a given restaurant
 -- 8. get all orders for a given user
--- 9. total earnings for restaurant - done
--- 10. total spending for user - done
 -- 11. get menu for given restaurant
-
 
 
 -- IF YOU ARE MAKING MORE PROCEDURES DO IT HERE, ABOVE THE DELIMITER ; LINE

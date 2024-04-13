@@ -29,7 +29,7 @@ ALTER TABLE restaurant_contacts add constraint fk_restaurant_contacts FOREIGN KE
 CREATE TABLE menu_item(
     item_id INT PRIMARY KEY,
     restaurant_id INT not null,
-    item_name VARCHAR(20) not null,
+    item_name VARCHAR(40) not null,
     price INT not null,
     item_desc VARCHAR(50)
 );
@@ -44,7 +44,7 @@ CREATE TABLE orders(
     order_restaurant_id INT not null,
     total_amount INT not null,
     order_status ENUM('Order Incomplete', 'Order Recieved', 'Order Ready', 'Order Collected') not null,
-    payment_method ENUM('Cash', 'UPI', 'Order Incomplete') not null,
+    payment_method ENUM('Cash', 'UPI', 'Card', 'Unknown') not null,
     order_date_time DATETIME,
     phone_number VARCHAR(10) not null
 );
@@ -73,13 +73,13 @@ ALTER TABLE order_item add constraint fk_orderitem_menu FOREIGN KEY (menu_item_i
 
 -- CREATE OPENING HOUR TABLE
 CREATE TABLE opening_hour(
-    restaurant_hour_id INT,
+    restaurant_id INT,
     hours_id INT,
     day_of_week ENUM('Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'),
     opening_time TIME,
     closing_time TIME,
-    PRIMARY KEY (restaurant_hour_id,hours_id)
+    PRIMARY KEY (restaurant_id,hours_id)
 );
 
 -- FOREIGN KEY BETWEEN OPENING HOUR AND RESTAURANT
-ALTER TABLE opening_hour add constraint fk_openinghr_restaurant FOREIGN KEY (restaurant_hour_id) REFERENCES restaurant(restaurant_id);
+ALTER TABLE opening_hour add constraint fk_openinghr_restaurant FOREIGN KEY (restaurant_id) REFERENCES restaurant(restaurant_id);
