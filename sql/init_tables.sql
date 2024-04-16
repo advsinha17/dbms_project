@@ -31,6 +31,8 @@ CREATE TABLE restaurant_contacts (
 
 -- FOREIGN KEY BETWEEN RESTAURANT CONTACTS AND RESTAURANT 
 ALTER TABLE restaurant_contacts add constraint fk_restaurant_contacts FOREIGN KEY (restaurant_id) REFERENCES restaurant(restaurant_id);
+-- CHECK CONSTRAINT FOR PHONE NUMBER IN RESTAURANT CONTACTS
+ALTER TABLE restaurant_contacts ADD CONSTRAINT chk_phone_no_format CHECK (contact REGEXP '^[0-9]{10}$');
 
 -- CREATE MENU ITEMS TABLE
 CREATE TABLE menu_item(
@@ -43,6 +45,8 @@ CREATE TABLE menu_item(
 
 -- FOREIGN KEY BETWEEN MENU ITEMS AND RESTAURANT 
 ALTER TABLE menu_item add constraint fk_menu_item FOREIGN KEY (restaurant_id) REFERENCES restaurant(restaurant_id);
+-- CHECK IF PRICE IS POSITIVE
+ALTER TABLE menu_item ADD CONSTRAINT chk_price_positive CHECK (price > 0);
 
 -- CREATE ORDERS TABLE
 CREATE TABLE orders(
@@ -58,9 +62,10 @@ CREATE TABLE orders(
 
 -- FOREIGN KEY BETWEEN ORDERS AND USERS
 ALTER TABLE orders add constraint fk_order_users FOREIGN KEY (order_user) REFERENCES users(user_id);
-
 -- FOREIGN KEY BETWEEN ORDERS AND RESTAURANT
 ALTER TABLE orders add constraint fk_order_restaurant FOREIGN KEY (order_restaurant_id) REFERENCES restaurant(restaurant_id);
+-- CHECK CONSTRAINT FOR PHONE NUMBER IN RESTAURANT CONTACTS
+ALTER TABLE orders ADD CONSTRAINT chk_phone_no_format CHECK (phone_number REGEXP '^[0-9]{10}$');
 
 -- CREATE ORDER ITEM TABLE
 CREATE TABLE order_item(
@@ -74,9 +79,10 @@ CREATE TABLE order_item(
 
 -- FOREIGN KEY BETWEEN ORDER ITEM AND ORDERS
 ALTER TABLE order_item add constraint fk_orderitem_order FOREIGN KEY (order_id) REFERENCES orders(order_id);
-
 -- FOREIGN KEY BETWEEN ORDER ITEM AND MENU ITEM
 ALTER TABLE order_item add constraint fk_orderitem_menu FOREIGN KEY (menu_item_id) REFERENCES menu_item(item_id);
+-- CHECK IF QUANTITY PER ORDER ITEM IS POSITIVE
+ALTER TABLE order_item ADD CONSTRAINT chk_quantity_positive CHECK (quantity > 0);
 
 -- CREATE OPENING HOUR TABLE
 CREATE TABLE opening_hour(
