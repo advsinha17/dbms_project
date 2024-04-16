@@ -19,7 +19,7 @@ END;
 
 CREATE OR REPLACE TRIGGER update_total
 AFTER INSERT ON order_items
-FOR EACH ROW
+FOR EACH ROW -- shouldn't be for each row
 DECLARE
     order_total INT;
 BEGIN
