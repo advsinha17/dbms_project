@@ -60,6 +60,20 @@ EXCEPTION
 END;
 /
 
+CREATE OR REPLACE PROCEDURE delete_menu_item(item_id IN INT) AS
+BEGIN
+    IF ((item_id <> '')) THEN
+        DELETE FROM menu_item
+        WHERE item_id = menu_item.item_id;
+    ELSE
+        SELECT 'Menu item id cannot be empty.' AS WARNING;
+    END IF;
+EXCEPTION
+    WHEN OTHERS THEN
+        SELECT 'Exception ' || SQLERRM AS EXCEPTION;
+END;
+/
+
 CREATE OR REPLACE PROCEDURE create_new_order(order_id IN INT, order_user IN INT, order_rest_id IN INT, phone_number IN VARCHAR2) AS
 BEGIN
     IF (phone_number <> '' ) THEN -- removed the phone number check condition as theres already a check constraint
