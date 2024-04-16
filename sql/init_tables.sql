@@ -1,19 +1,24 @@
 --CREATE USERS TABLE
 CREATE TABLE users (
     user_id INT PRIMARY KEY,
+    password VARCHAR(20) not null,
     fname VARCHAR(50) not null,
     lname VARCHAR(50) not null,
-    email VARCHAR(50) not null UNIQUE
+    email VARCHAR(50) not null UNIQUE,
+    is_admin BOOLEAN not null
 );
 
 
 -- CREATE RESTAURANT TABLE
 CREATE TABLE restaurant (
     restaurant_id INT PRIMARY KEY,
+    owner_id INT,
     restaurant_name VARCHAR(20) not null UNIQUE,
     description VARCHAR(100) not null,
     status ENUM('Coming Soon', 'Closed', 'Open', 'Permanently Closed', 'Under Renovation') not null
 );
+
+ALTER TABLE restaurant add constrain fk_restaurant_owner FOREIGN KEY (owner_id) REFERENCES users(user_id);
 
 -- CREATE RESTAURANT CONTACTS TABLE
 CREATE TABLE restaurant_contacts (
@@ -21,6 +26,8 @@ CREATE TABLE restaurant_contacts (
     contact VARCHAR(10) not null,
     PRIMARY KEY (restaurant_id, contact)
 );
+
+
 
 -- FOREIGN KEY BETWEEN RESTAURANT CONTACTS AND RESTAURANT 
 ALTER TABLE restaurant_contacts add constraint fk_restaurant_contacts FOREIGN KEY (restaurant_id) REFERENCES restaurant(restaurant_id);
