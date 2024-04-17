@@ -1,18 +1,30 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { Container, Form, Button, Row, Col } from "react-bootstrap";
 
 function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const navigate = useNavigate();
 
   const handleSubmit = async (event) => {
     event.preventDefault();
-    const response = await axios.post(
-      `${process.env.REACT_APP_BACKEND_URI}/login`,
-      { email, password }
-    );
-    console.log(response.data);
+    try {
+      const response = await axios.post(
+        `${process.env.REACT_APP_BACKEND_URI}/user/login`,
+        { email, password }
+      );
+      if (response.status === 200) {
+        localStorage.setItem("isAdmin", "false");
+        localStorage.setItem("userId", response.data.userId);
+        navigate("/home");
+      } else {
+        alert(response.data.message);
+      }
+    } catch (error) {
+      alert(error);
+    }
   };
 
   return (
