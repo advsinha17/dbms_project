@@ -1,12 +1,14 @@
 import express from "express";
-import { getConnection } from "./db.js";
+import userRoutes from "./userRoutes.js";
 
 const app = express();
 const port = 8000;
 
+app.use(express.json());
+
+app.use("/user", userRoutes);
+
 app.get("/", async (req, res) => {
-  const connection = await getConnection();
-  connection.release();
   res.send("Hello World!");
 });
 
