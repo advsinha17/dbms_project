@@ -2,11 +2,12 @@ SET SQL_MODE=ORACLE;
 
 DELIMITER /
 
-CREATE OR REPLACE TRIGGER update_subtotal BEFORE INSERT ON order_item FOR EACH ROW
+CREATE OR REPLACE TRIGGER update_subtotal BEFORE INSERT ON order_item
+FOR EACH ROW
 DECLARE 
     item_price INT;
 BEGIN
-    SELECT price INTO item_price FROM menu_items WHERE item_id = :NEW.menu_item_id;
+    SELECT price INTO item_price FROM menu_item WHERE item_id = :NEW.menu_item_id;
     :NEW.subtotal := item_price * :NEW.quantity;
 EXCEPTION
     WHEN NO_DATA_FOUND THEN
@@ -18,12 +19,12 @@ END;
 
 
 CREATE OR REPLACE TRIGGER update_total
-AFTER INSERT ON order_items
-FOR EACH ROW -- shouldn't be for each row
+AFTER INSERT ON order_item
+FOR EACH ROW
 DECLARE
     order_total INT;
 BEGIN
-    SELECT total_amount FROM orders INTO order_total FROM orders WHERE order_id = :NEW.order_id;
+    SELECT total_amount INTO order_total FROM orders WHERE order_id = :NEW.order_id;
     order_total := order_total + :NEW.subtotal;
 
     UPDATE orders

@@ -2,15 +2,19 @@ SET SQL_MODE=ORACLE;
 
 DELIMITER /
 
-CREATE OR REPLACE PROCEDURE add_user(user_id IN INT, fname IN VARCHAR2, lname IN VARCHAR2, email IN VARCHAR2, is_admin IN BOOLEAN) AS
+CREATE OR REPLACE PROCEDURE add_user(user_id IN INT, password IN VARCHAR, fname IN VARCHAR2, lname IN VARCHAR2, email IN VARCHAR2, is_admin IN BOOLEAN) AS
 BEGIN
     IF ((fname <> '') && (lname <> '') && (email <> '')) THEN
         IF (email REGEXP '^f20(19|20|21|22|23)[0-9]{4}@hyderabad\\.bits-pilani\\.ac\\.in$') THEN
-            INSERT INTO users (user_id, fname, lname, email, is_admin)
-            VALUES (user_id, fname, lname, email, is_admin);
-            SELECT CONCAT('Created user with user id ', user_id) AS SUCCESS;
+            IF (LENGTH(password) > 6 AND password REGEXP '[A-Za-z]' AND password REGEXP '[0-9]') THEN
+                INSERT INTO users (user_id, password, fname, lname, email, is_admin)
+                VALUES (user_id, password, fname, lname, email, is_admin);
+                SELECT 'Created user with user id ' || user_id AS SUCCESS;
+            ELSE
+                SELECT 'Password must be atleast 7 characters long and must have atleast 1 alphabet and 1 digit.' AS WARNING;
+            END IF;
         ELSE
-            SELECT 'Invalid email format' AS WARNING;
+            SELECT 'Only BITS mail allowed.' AS WARNING;
         END IF;
     ELSE
         SELECT 'Insufficient information provided' AS WARNING;
@@ -22,13 +26,13 @@ END;
 /
 
 CREATE OR REPLACE PROCEDURE create_new_restaurant(restaurant_id IN INT, owner_id IN INT, name IN VARCHAR2, description IN VARCHAR2, status IN VARCHAR2, phone IN VARCHAR2) AS
-    is_admin BOOLEAN;
+    is_admin INT;
 BEGIN
-    SELECT is_admin INTO is_admin FROM users WHERE user_id = owner_id;
-    IF is_admin THEN
+    SELECT users.is_admin INTO is_admin FROM users WHERE user_id = owner_id;
+    IF (is_admin = 1) THEN
         INSERT INTO restaurant (restaurant_id, owner_id, restaurant_name, description, status)
         VALUES (restaurant_id, owner_id, name, description, status);
-        SELECT CONCAT('Restaurant created with restaurant_id ', restaurant_id) AS SUCCESS;
+        SELECT 'Restaurant created with restaurant_id ' || restaurant_id AS SUCCESS;
         IF ((phone <> '') AND (phone REGEXP '^[0-9]{10}$')) THEN
             INSERT INTO restaurant_contacts(restaurant_id, contact)
             VALUES (restaurant_id, phone);
@@ -44,11 +48,11 @@ EXCEPTION
         SELECT 'Exception ' || SQLERRM AS EXCEPTION;
 END;
 /
+CREATE OR REPLACE PROCEDURE create_menu_item(item_id IN INT, restaurant_id IN INT, item_name IN VARCHAR2, price IN INT, item_desc IN VARCHAR2) AS
 
-CREATE OR REPLACE PROCEDURE create_menu_item(item_id IN INT, restaurant_id IN INT, item_name IN VARCHAR2, price IN INT, item_des IN VARCHAR2) AS
 BEGIN
     IF ((item_name <> '')) THEN
-        INSERT INTO menu_items (item_id, restaurant_id, item_name, price, item_desc)
+        INSERT INTO menu_item (item_id, restaurant_id, item_name, price, item_desc)
         VALUES (item_id, restaurant_id, item_name, price, item_desc);
         SELECT 'Menu item with id ' || item_id || ' and name ' || item_name || ' created successfully.' AS SUCCESS;
     ELSE
@@ -78,7 +82,7 @@ CREATE OR REPLACE PROCEDURE create_new_order(order_id IN INT, order_user IN INT,
 BEGIN
     IF (phone_number <> '' ) THEN -- removed the phone number check condition as theres already a check constraint
         INSERT INTO orders (order_id, order_user, order_restaurant_id, total_amount, order_status, payment_method, order_date_time, phone_number)
-        VALUES (order_id, order_user, order_restaurant_id, 0, 'Order Incomplete', 'Unknown', NULL, phone_number);
+        VALUES (order_id, order_user, order_rest_id, 0, 'Order Incomplete', 'Unknown', NULL, phone_number);
         SELECT 'Order created with order ID ' || order_id;
     ELSE
         SELECT 'Phone number must be numberic ONLY and 10 digits long';
@@ -91,7 +95,7 @@ END;
 
 CREATE OR REPLACE PROCEDURE set_opening_hours(restaurant_id INT, hours_id INT, day_of_week VARCHAR(20), opening_time TIME, closing_time TIME) AS
 BEGIN
-    INSERT INTO opening_hours (restaurant_id, hours_id, day_of_week, opening_time, closing_time)
+    INSERT INTO opening_hour (restaurant_id, hours_id, day_of_week, opening_time, closing_time)
     VALUES (restaurant_id, hours_id, day_of_week, opening_time, closing_time)
     ON DUPLICATE KEY UPDATE
         day_of_week = VALUES(day_of_week),
@@ -105,18 +109,12 @@ END;
 /
 
 CREATE OR REPLACE PROCEDURE create_order_item(order_id IN INT, order_item_id IN INT, quantity IN INT, menu_item_id IN INT) AS
-subtotal INT;
 BEGIN
     IF (quantity = 0) THEN
         SELECT 'Quantity must be greater than zero' AS WARNING;
     ELSE
-        subtotal := calc_subtotal(menu_item_id, quantity);
-        IF (subtotal = 0) THEN
-            SELECT 'Menu item not found' AS WARNING;
-        ELSE
-            INSERT INTO order_item (order_id, order_item_id, quantity, subtotal, menu_item_id)
-            VALUES (order_id, order_item_id, quantity, subtotal, menu_item_id);
-        END IF;
+        INSERT INTO order_item (order_id, order_item_id, quantity, menu_item_id)
+        VALUES (order_id, order_item_id, quantity, menu_item_id);
     END IF;
 EXCEPTION
     WHEN OTHERS THEN
@@ -132,10 +130,10 @@ BEGIN
 
     UPDATE orders
     SET order_status = 'Order Recieved',
-        payment_method = payment_method,
-        order_date_time = SYSDATE,
-        total_amount = total_amount
-    WHERE order_id = order_id;
+        orders.payment_method = payment_method,
+        order_date_time = SYSDATE
+    WHERE orders.order_id = order_id;
+
 EXCEPTION
     WHEN OTHERS THEN
         SELECT 'Exception ' || SQLERRM AS EXCEPTION;
@@ -177,29 +175,29 @@ BEGIN
 END;
 /
 
-CREATE OR REPLACE PROCEDURE get_order_details(order_id IN INT) AS
-    CURSOR c_order_details IS
-    SELECT o.order_id, o.order_status, o.payment_method, o.order_date_time, o.total_amount, u.fname || ' ' || u.lname AS user_full_name, mi.item_name
-    FROM orders o
-    JOIN users u ON o.order_user = u.user_id
-    JOIN order_items oi ON o.order_id = oi.order_id
-    JOIN menu_item mi ON oi.menu_item_id = mi.item_id
-    WHERE o.order_id = order_id;
-    v_order_details c_order_details%ROWTYPE;
-BEGIN
-    OPEN c_order_details;
-    FETCH c_order_details INTO v_order_details;
-    CLOSE c_order_details;
-    SELECT 'Order id: ' || v_order_details.order_id AS SUCCESS;
-    SELECT 'Order status: ' || v_order_details.order_status AS SUCCESS;
-    SELECT 'User full names: ' || v_order_details.user_full_name AS SUCCESS;
-EXCEPTION
-    WHEN NO_DATA_FOUND THEN
-        SELECT 'Order not found.' AS EXCEPTION;
-    WHEN OTHERS THEN
-        SELECT 'Exception ' || SQLERRM AS EXCEPTION;
-END;
-/
+-- CREATE OR REPLACE PROCEDURE get_order_details(order_id IN INT) AS
+--     CURSOR c_order_details IS
+--     SELECT o.order_id, o.order_status, o.payment_method, o.order_date_time, o.total_amount, u.fname || ' ' || u.lname AS user_full_name, mi.item_name
+--     FROM orders o
+--     JOIN users u ON o.order_user = u.user_id
+--     JOIN order_items oi ON o.order_id = oi.order_id
+--     JOIN menu_item mi ON oi.menu_item_id = mi.item_id
+--     WHERE o.order_id = order_id;
+--     v_order_details c_order_details%ROWTYPE;
+-- BEGIN
+--     OPEN c_order_details;
+--     FETCH c_order_details INTO v_order_details;
+--     CLOSE c_order_details;
+--     SELECT 'Order id: ' || v_order_details.order_id AS SUCCESS;
+--     SELECT 'Order status: ' || v_order_details.order_status AS SUCCESS;
+--     SELECT 'User full names: ' || v_order_details.user_full_name AS SUCCESS;
+-- EXCEPTION
+--     WHEN NO_DATA_FOUND THEN
+--         SELECT 'Order not found.' AS EXCEPTION;
+--     WHEN OTHERS THEN
+--         SELECT 'Exception ' || SQLERRM AS EXCEPTION;
+-- END;
+-- /
 
 -- CREATE OR REPLACE PROCEDURE get_order_details(order_id IN INT) AS
 --     CURSOR c_order_details IS

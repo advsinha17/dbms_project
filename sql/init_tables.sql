@@ -5,7 +5,7 @@ CREATE TABLE users (
     fname VARCHAR(50) not null,
     lname VARCHAR(50) not null,
     email VARCHAR(50) not null UNIQUE,
-    is_admin BOOLEAN not null
+    is_admin INT not null
 );
 
 
@@ -18,7 +18,7 @@ CREATE TABLE restaurant (
     status ENUM('Coming Soon', 'Closed', 'Open', 'Permanently Closed', 'Under Renovation') not null
 );
 
-ALTER TABLE restaurant add constrain fk_restaurant_owner FOREIGN KEY (owner_id) REFERENCES users(user_id);
+ALTER TABLE restaurant add constraint fk_restaurant_owner FOREIGN KEY (owner_id) REFERENCES users(user_id);
 
 -- CREATE RESTAURANT CONTACTS TABLE
 CREATE TABLE restaurant_contacts (
@@ -26,8 +26,6 @@ CREATE TABLE restaurant_contacts (
     contact VARCHAR(10) not null,
     PRIMARY KEY (restaurant_id, contact)
 );
-
-
 
 -- FOREIGN KEY BETWEEN RESTAURANT CONTACTS AND RESTAURANT 
 ALTER TABLE restaurant_contacts add constraint fk_restaurant_contacts FOREIGN KEY (restaurant_id) REFERENCES restaurant(restaurant_id);
