@@ -49,6 +49,7 @@ EXCEPTION
 END;
 /
 CREATE OR REPLACE PROCEDURE create_menu_item(item_id IN INT, restaurant_id IN INT, item_name IN VARCHAR2, price IN INT, item_desc IN VARCHAR2) AS
+
 BEGIN
     IF ((item_name <> '')) THEN
         INSERT INTO menu_item (item_id, restaurant_id, item_name, price, item_desc)
@@ -63,9 +64,23 @@ EXCEPTION
 END;
 /
 
+CREATE OR REPLACE PROCEDURE delete_menu_item(item_id IN INT) AS
+BEGIN
+    IF ((item_id <> '')) THEN
+        DELETE FROM menu_item
+        WHERE item_id = menu_item.item_id;
+    ELSE
+        SELECT 'Menu item id cannot be empty.' AS WARNING;
+    END IF;
+EXCEPTION
+    WHEN OTHERS THEN
+        SELECT 'Exception ' || SQLERRM AS EXCEPTION;
+END;
+/
+
 CREATE OR REPLACE PROCEDURE create_new_order(order_id IN INT, order_user IN INT, order_rest_id IN INT, phone_number IN VARCHAR2) AS
 BEGIN
-    IF (phone_number <> '' AND (phone_number REGEXP '^[0-9]{10}$')) THEN
+    IF (phone_number <> '' ) THEN -- removed the phone number check condition as theres already a check constraint
         INSERT INTO orders (order_id, order_user, order_restaurant_id, total_amount, order_status, payment_method, order_date_time, phone_number)
         VALUES (order_id, order_user, order_rest_id, 0, 'Order Incomplete', 'Unknown', NULL, phone_number);
         SELECT 'Order created with order ID ' || order_id;
@@ -108,15 +123,33 @@ END;
 /
 
 CREATE OR REPLACE PROCEDURE place_order(order_id IN INT, payment_method IN VARCHAR2) AS
+    total_amount INT;
 BEGIN
+    SELECT SUM(subtotal) INTO total_amount FROM order_item 
+    WHERE order_item.order_id = order_id;
+
     UPDATE orders
     SET order_status = 'Order Recieved',
         orders.payment_method = payment_method,
         order_date_time = SYSDATE
     WHERE orders.order_id = order_id;
+
 EXCEPTION
     WHEN OTHERS THEN
         SELECT 'Exception ' || SQLERRM AS EXCEPTION;
+END;
+/
+
+CREATE OR REPLACE FUNCTION calc_subtotal(menu_item_id IN INT, quantity IN INT) RETURN INT IS
+    subtotal INT;
+    item_price INT;
+BEGIN
+    SELECT price INTO item_price FROM menu_items WHERE item_id = menu_item_id;
+    SET subtotal = item_price * quantity;
+    RETURN subtotal;
+EXCEPTION
+    WHEN OTHERS THEN
+        RETURN 0;
 END;
 /
 
@@ -130,7 +163,11 @@ BEGIN
 END;
 /
 
-
+CREATE OR REPLACE PROCEDURE get_orders_for_restaurant(rest_id IN INT) AS
+BEGIN
+    SELECT * FROM orders WHERE order_restaurant_id = rest_id;
+END;
+/
 
 CREATE OR REPLACE PROCEDURE get_orders_for_user(user_id IN INT) AS
 BEGIN
